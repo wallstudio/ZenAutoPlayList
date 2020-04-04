@@ -6,7 +6,6 @@
 // @author       You
 // @match        https://www.nicovideo.jp/*
 // @grant        none
-// 
 // ==/UserScript==
 
 
