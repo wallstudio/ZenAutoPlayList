@@ -2,11 +2,13 @@
 // @name         ZenAutoPlayList
 // @namespace    http://tampermonkey.net/
 // @version      0.1
-// @description  try to take over the world!
+// @description  https://github.com/wallstudio/ZenAutoPlayList/blob/master/ZenAutoPlayList.user.js
 // @author       You
-// @match        https://www.nicovideo.jp/my/top
+// @match        https://www.nicovideo.jp/*
 // @grant        none
+// 
 // ==/UserScript==
+
 
 (function() {
     'use strict';
