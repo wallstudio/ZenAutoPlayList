@@ -6,7 +6,7 @@
 // @author       You
 // @match        https://www.nicovideo.jp/*
 // @grant        none
-// @require       https://raw.githubusercontent.com/wallstudio/XhrFetchInjection/master/xhrFetchInjection.user.js
+// @require      https://raw.githubusercontent.com/wallstudio/XhrFetchInjection/master/xhrFetchInjection.user.js
 // ==/UserScript==
 
 
@@ -55,28 +55,35 @@
     {
         let ret = callback(args);
 
-        let allPost = Array.from(document.getElementsByClassName("NicorepoTimelineItem"));
-        let enable = allPost.filter(e => getComputedStyle(e, null).display != "none");
-        let videos = enable.filter(e =>e.getAttribute("data-topic") == "nicovideo.user.video.upload");
-        for(let i = 1; i < videos.length; i++)
+        try
         {
-            let last = videos[i - 1];
-            if(doneList.includes(last))
+            let allPost = Array.from(document.getElementsByClassName("NicorepoTimelineItem"));
+            let enable = allPost.filter(e => getComputedStyle(e, null).display != "none");
+            let videos = enable.filter(e =>e.getAttribute("data-topic") == "nicovideo.user.video.upload");
+            for(let i = 1; i < videos.length; i++)
             {
-                continue;
+                let last = videos[i - 1];
+                if(doneList.includes(last))
+                {
+                    continue;
+                }
+
+                doneList.push(last);
+                let partVideos = videos.slice(0, i);
+                let playListData = getPlayList(partVideos);
+                console.log(`${partVideos.length} ${playListData.download}`);
+
+                let button = document.createElement("a");
+                button.innerText = `  PlayList(${partVideos.length})`;
+                button.href = playListData.href;
+                button.download = playListData.download;
+                let footer = last.getElementsByClassName("log-footer-inner")[0];
+                footer.insertBefore(button, footer.childNodes[0]);
             }
-
-            doneList.push(last);
-            let partVideos = videos.slice(0, i);
-            let playListData = getPlayList(partVideos);
-            console.log(`${partVideos.length} ${playListData.download}`);
-
-            let button = document.createElement("a");
-            button.innerText = `  PlayList(${partVideos.length})`;
-            button.href = playListData.href;
-            button.download = playListData.download;
-            let footer = last.getElementsByClassName("log-footer-inner")[0];
-            footer.insertBefore(button, footer.childNodes[0]);
+        }
+        catch(e)
+        {
+            console.error(e);
         }
 
         return ret;
