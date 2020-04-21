@@ -47,7 +47,10 @@
         let json = JSON.stringify(jsonContainer);
         let href = 'data:application/json,' + encodeURIComponent(`${json}`);
         let download = `${jsonContainer.items[0].title}-${jsonContainer.items[jsonContainer.items.length - 1].title}.playlist.json`;
-        return { href : href, download : download};
+        return {
+            first: jsonContainer.items[0].id,
+            ids: jsonContainer.items.map(i => i.id),
+            json : json, href : href, download : download};
     }
 
     let doneList = [];
@@ -77,6 +80,16 @@
                 button.innerText = `  PlayList(${partVideos.length})`;
                 button.href = playListData.href;
                 button.download = playListData.download;
+                // button.addEventListener("click", () =>
+                // {
+                //     console.log(playListData.first);
+                //     // ZenzaWatch.external.playlist.import(playListData.json);
+                //     for(let j = 0; j < playListData.ids.length; j++)
+                //     {
+                //         ZenzaWatch.external.playlist.add(playListData.ids[j]);
+                //     }
+                //     ZenzaWatch.external.open(playListData.first);
+                // });
                 let footer = last.getElementsByClassName("log-footer-inner")[0];
                 footer.insertBefore(button, footer.childNodes[0]);
             }
