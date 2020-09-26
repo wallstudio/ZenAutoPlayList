@@ -1,105 +1,92 @@
 // ==UserScript==
 // @name         ZenAutoPlayList
-// @namespace    http://tampermonkey.net/
-// @version      0.1
+// @namespace    https://github.com/wallstudio/ZenAutoPlayList
+// @version      0.2
 // @description  https://github.com/wallstudio/ZenAutoPlayList/blob/master/ZenAutoPlayList.user.js
-// @author       You
-// @match        https://www.nicovideo.jp/*
+// @author       うぷはし
+// @match        https://www.nicovideo.jp/my*
 // @grant        none
-// @require      https://raw.githubusercontent.com/wallstudio/XhrFetchInjection/master/xhrFetchInjection.user.js
 // ==/UserScript==
 
 
 (function() {
     'use strict';
 
-
-    let getPlayList = function(videos)
+    window.addEventListener('click', async e =>
     {
-        let jsonContainer = new Object();
-        jsonContainer.items = [];
-        for(let i = 0; i < videos.length; i++)
+        if(!e.originalTarget.classList.contains('ThreePointMenu-button'))
         {
-            try
-            {
-                let item = new Object();
-                item.active = true;
-                item.played = false;
-                item.title = videos[i].getElementsByClassName("log-target-info")[0].getElementsByTagName("a")[0].innerText;
-                item.url = videos[i].getElementsByClassName("log-target-thumbnail")[0].getElementsByTagName("a")[0].href;
-                item.id = item.url.match(/sm[0-9]+/)[0];
-                item.thumbnail_url = videos[i].getElementsByClassName("log-target-thumbnail")[0].getElementsByTagName("img")[0].src;
-                item.length_seconds = 0;
-                item.num_res = 0;
-                item.mylist_counter = 0;
-                item.view_counter = 0;
-                item.first_retrieve = "2020/01/01";
-                jsonContainer.items[i] = item;
-            }
-            catch(e){ }
+            return;
         }
-        jsonContainer.items = jsonContainer.items.reverse();
-        if(jsonContainer.items.length < 1)
+        if(!e.originalTarget.parentElement.classList.contains('NicorepoItem-header'))
         {
             return;
         }
 
-        let json = JSON.stringify(jsonContainer);
-        let href = 'data:application/json,' + encodeURIComponent(`${json}`);
-        let download = `${jsonContainer.items[0].title}-${jsonContainer.items[jsonContainer.items.length - 1].title}.playlist.json`;
-        return {
-            first: jsonContainer.items[0].id,
-            ids: jsonContainer.items.map(i => i.id),
-            json : json, href : href, download : download};
-    }
+        await new Promise(r => setTimeout(r, 1));
 
-    let doneList = [];
-    injectFetch((url, args, callback) =>
-    {
-        let ret = callback(args);
+        const videoContainer = e.originalTarget.parentElement.parentElement.getElementsByClassName('NicorepoItem-content')[0];
+        const videoId = videoContainer.href.match(/sm[0-9]+/)[0];
+        
+        const popup = document.getElementsByClassName('ThreePointMenu NicorepoItemMenu')[0];
+        console.log(popup);
+        
+        const button = popup.getElementsByTagName('button')[0].cloneNode(true);
+        button.innerHTML = 'ここからのプレイリスト';
+        popup.appendChild(button);
+        console.log(button);
 
-        try
+        button.addEventListener('click', async () =>
         {
-            let allPost = Array.from(document.getElementsByClassName("NicorepoTimelineItem"));
-            let enable = allPost.filter(e => getComputedStyle(e, null).display != "none");
-            let videos = enable.filter(e =>e.getAttribute("data-topic") == "nicovideo.user.video.upload");
-            for(let i = 1; i < videos.length; i++)
-            {
-                let last = videos[i - 1];
-                if(doneList.includes(last))
+            const loadedList = Array.from(document.getElementsByClassName('NicorepoItem-content')).map(e => e.href.match(/sm[0-9]+/)[0]);
+            const lastIndex = loadedList.findIndex(e => e == videoId);
+            const useList = loadedList.slice(0, lastIndex + 1);
+            console.log(useList);
+
+            let jsonContainer = {
+                items: await Promise.all(useList.reverse().map(async id =>
                 {
-                    continue;
-                }
+                    try
+                    {
+                        const url = 'https://www.nicovideo.jp/watch/' + id;
+                        const res = await fetch(url, {mode: 'cors'});
+                        const dataXML = new DOMParser().parseFromString(await res.text(), 'text/html');
+                        const dataJson = JSON.parse(dataXML.getElementById('js-initial-watch-data').getAttribute('data-api-data'));
+                        console.log(dataXML);
+                        console.log(dataJson);
 
-                doneList.push(last);
-                let partVideos = videos.slice(0, i);
-                let playListData = getPlayList(partVideos);
-                console.log(`${partVideos.length} ${playListData.download}`);
-
-                let button = document.createElement("a");
-                button.innerText = `  PlayList(${partVideos.length})`;
-                button.href = playListData.href;
-                button.download = playListData.download;
-                // button.addEventListener("click", () =>
-                // {
-                //     console.log(playListData.first);
-                //     // ZenzaWatch.external.playlist.import(playListData.json);
-                //     for(let j = 0; j < playListData.ids.length; j++)
-                //     {
-                //         ZenzaWatch.external.playlist.add(playListData.ids[j]);
-                //     }
-                //     ZenzaWatch.external.open(playListData.first);
-                // });
-                let footer = last.getElementsByClassName("log-footer-inner")[0];
-                footer.insertBefore(button, footer.childNodes[0]);
+                        return {
+                            active: true,
+                            played: false,
+                            title: dataXML.title,
+                            url: url,
+                            id: dataJson.video.id,
+                            thumbnail_url: dataJson.video.largeThumbnailURL,
+                            length_seconds: dataJson.video.duration,
+                            num_res: dataJson.thread.commentCount,
+                            mylist_counter: dataJson.video.mylistCount,
+                            view_counter: dataJson.video.viewCount,
+                            first_retrieve: dataJson.video.postedDateTime,
+                        };
+                    }
+                    catch(e)
+                    {
+                        console.error(e);
+                        return null;
+                    }
+                })),
+                index: 0,
+                enable: true,
+                loop: false,
             }
-        }
-        catch(e)
-        {
-            console.error(e);
-        }
+            console.log(jsonContainer);
 
-        return ret;
+            const json = JSON.stringify(jsonContainer);
+            const dummy = document.createElement('a');
+            dummy.href = 'data:application/json,' + encodeURIComponent(`${json}`);
+            dummy.download = `${jsonContainer.items[0].title}-${jsonContainer.items[jsonContainer.items.length - 1].title}.playlist.json`;
+            dummy.click();
+            document.removeChild(dummy);
+        });
     });
-
 })();
