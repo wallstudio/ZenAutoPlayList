@@ -12,6 +12,13 @@
 (function() {
     'use strict';
 
+    window.DebugForZenAutoPlayList = false;
+    function log(arg)
+    {
+        if(!window.DebugForZenAutoPlayList) return;
+        log(arg)
+    }
+
     window.addEventListener('click', async e =>
     {
         if(!e.originalTarget.classList.contains('ThreePointMenu-button'))
@@ -29,22 +36,31 @@
         const videoId = videoContainer.href.match(/sm[0-9]+/)[0];
         
         const popup = document.getElementsByClassName('ThreePointMenu NicorepoItemMenu')[0];
-        console.log(popup);
+        log(popup);
         
         const button = popup.getElementsByTagName('button')[0].cloneNode(true);
         button.innerHTML = 'ここからのプレイリスト';
         popup.appendChild(button);
-        console.log(button);
+        log(button);
 
         button.addEventListener('click', async () =>
         {
             const loadedList = Array.from(document.getElementsByClassName('NicorepoItem-content')).map(e => e.href.match(/sm[0-9]+/)[0]);
             const lastIndex = loadedList.findIndex(e => e == videoId);
             const useList = loadedList.slice(0, lastIndex + 1);
-            console.log(useList);
+            log(useList);
 
             let jsonContainer = {
-                items: await Promise.all(useList.reverse().map(async id =>
+                items: [],
+                index: 0,
+                enable: true,
+                loop: false,
+            };
+            for (const id of useList.reverse())
+            {
+                let videoInfo = null;
+                let error = null;
+                for (let i = 0; i < 8; i++)
                 {
                     try
                     {
@@ -52,10 +68,9 @@
                         const res = await fetch(url, {mode: 'cors'});
                         const dataXML = new DOMParser().parseFromString(await res.text(), 'text/html');
                         const dataJson = JSON.parse(dataXML.getElementById('js-initial-watch-data').getAttribute('data-api-data'));
-                        console.log(dataXML);
-                        console.log(dataJson);
-
-                        return {
+                        log(dataXML);
+                        log(dataJson);
+                        videoInfo = {
                             active: true,
                             played: false,
                             title: dataXML.title,
@@ -68,25 +83,32 @@
                             view_counter: dataJson.video.viewCount,
                             first_retrieve: dataJson.video.postedDateTime,
                         };
+                        break;
                     }
                     catch(e)
                     {
-                        console.error(e);
-                        return null;
+                        error = e.toString();
+                        console.error(`retry ${i} ${id}`);
+                        await new Promise(r => setTimeout(r, 1000 * i));
                     }
-                })),
-                index: 0,
-                enable: true,
-                loop: false,
+                    await new Promise(r => setTimeout(r, 100));
+                }
+                
+                if(error != null)
+                {
+                    alert(`${id}\n${error}`);
+                    throw error;
+                }
+                jsonContainer.items.push(videoInfo)
             }
-            console.log(jsonContainer);
+            log(jsonContainer);
 
             const json = JSON.stringify(jsonContainer);
             const dummy = document.createElement('a');
             dummy.href = 'data:application/json,' + encodeURIComponent(`${json}`);
             dummy.download = `${jsonContainer.items[0].title}-${jsonContainer.items[jsonContainer.items.length - 1].title}.playlist.json`;
+            alert(jsonContainer.items.map(e => e.title).join("\n"));
             dummy.click();
-            document.removeChild(dummy);
         });
     });
 })();
