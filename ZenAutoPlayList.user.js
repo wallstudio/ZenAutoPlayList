@@ -113,7 +113,7 @@
                     enable: true,
                     loop: false,
                 };
-                for (const id of useList.reverse())
+                for (const id of useList)
                 {
                     console.log(id);
                     jsonContainer.items.push(await fetchFromInternal(id))
