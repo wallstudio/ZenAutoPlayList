@@ -1,13 +1,15 @@
 // ==UserScript==
 // @name         ZenAutoPlayList
 // @namespace    https://github.com/wallstudio/ZenAutoPlayList
-// @version      0.2
+// @version      0.5
 // @description  https://github.com/wallstudio/ZenAutoPlayList/blob/master/ZenAutoPlayList.user.js
 // @author       うぷはし
 // @match        https://www.nicovideo.jp/my*
 // @grant        none
 // ==/UserScript==
 
+
+console.log("ZenAutoPlayList🍙🍙🍙🍙🍙");
 
 (function() {
     'use strict';
@@ -76,21 +78,21 @@
 
     window.addEventListener('click', async e =>
     {
-        if(!e.originalTarget.classList.contains('ThreePointMenu-button'))
+        if(!e.originalTarget.classList.contains("NC-ThreePointMenu-button"))
         {
             return;
         }
-        if(!e.originalTarget.parentElement.classList.contains('NicorepoItem-header'))
+        if(!e.originalTarget.parentElement.classList.contains("NicorepoItemMenu"))
         {
             return;
         }
 
         await new Promise(r => setTimeout(r, 1));
 
-        const videoContainer = e.originalTarget.parentElement.parentElement.getElementsByClassName('NicorepoItem-content')[0];
+        const videoContainer = e.originalTarget.parentElement.parentElement.parentElement.getElementsByClassName('NicorepoItem-content')[0];
         const videoId = videoContainer.href.match(/sm[0-9]+/)[0];
         
-        const popup = document.getElementsByClassName('ThreePointMenu NicorepoItemMenu')[0];
+        const popup = document.getElementsByClassName('NC-ThreePointMenu-menu')[0];
         log(popup);
         
         const button = popup.getElementsByTagName('button')[0].cloneNode(true);
